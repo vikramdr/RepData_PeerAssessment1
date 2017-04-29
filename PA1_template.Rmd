@@ -1,25 +1,82 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - Assignment1"
+output: html_document
 ---
 
 
-## Loading and preprocessing the data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+Load the libraries required for assignment
 
 
 
-## What is mean total number of steps taken per day?
+```{r cars}
+
+library(knitr)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+```
+
+Read the data, convert the date to date format and omit the observation with NA
+```{r}
+setwd("C:/Users/vikra/OneDrive/Data Science/Course 5 - Reproducable research/data")
+data<-read.csv("activity.csv",header=TRUE, sep = ',',colClasses =c("numeric","character","integer"))
+data$date<-ymd(data$date)
+datafile<-na.omit(data)
+```
+Group by date and summarize the steps to plot the histogram
+```{r}
+datafile.day<-group_by(datafile,date)
+datafileday<-summarize(datafile.day,steps=sum(steps))
+
+ggplot(datafileday,aes(steps))+
+    geom_histogram(fill = "blue", binwidth = 1000) +
+    labs(title = "Histogram of Steps per day", x = "Steps per day", y = "Frequency")
+
+mean(datafileday$steps)
+median(datafileday$steps)
+```
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+datafileinterval<-group_by(datafile,interval)
+datafileinterval<-summarise(datafileinterval, steps=mean(steps))
+ggplot(datafileinterval,aes(interval,steps))+geom_line()
+datafileinterval[which.max(datafileinterval$steps),]
+
+data_full <- data
+nas <- is.na(data_full$steps)
+avg_interval <- tapply(data_full$steps, data_full$interval, mean, na.rm=TRUE, simplify=TRUE)
+data_full$steps[nas] <- avg_interval[as.character(data_full$interval[nas])]
 
 
+steps_full <- data_full
+steps_full<-group_by(steps_full,date)
+steps_full<-summarize(steps_full, steps=sum(steps))
 
-## What is the average daily activity pattern?
+ggplot(steps_full, aes(x = steps)) +
+    geom_histogram(fill = "firebrick", binwidth = 1000) +
+    labs(title = "Histogram of Steps per day, including missing values", x = "Steps per day", y = "Frequency")
+
+mean_steps_full <- mean(steps_full$steps, na.rm = TRUE)
+median_steps_full <- median(steps_full$steps, na.rm = TRUE)
+
+mean_steps_full
+median_steps_full
+
+data_full <- mutate(data_full, weektype = ifelse(weekdays(data_full$date) == "Saturday" | weekdays(data_full$date) == "Sunday", "weekend", "weekday"))
+data_full$weektype <- as.factor(data_full$weektype)
 
 
+interval_full <- data_full %>%
+    group_by(interval, weektype) %>%
+    summarise(steps = mean(steps))
+ggplot(interval_full, aes(x=interval, y=steps, color = weektype)) +
+    geom_line() +
+    facet_wrap(~weektype, ncol = 1, nrow=2)
 
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```
